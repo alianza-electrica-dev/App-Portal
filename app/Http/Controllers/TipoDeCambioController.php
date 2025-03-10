@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
+
 class TipoDeCambioController extends Controller
 {
     public function obtenerTipoDeCambioActual()
     {
-        $fechaAyer = Carbon::yesterday()->format('Y-m-d');
-        $url = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43718/datos/{$fechaAyer}/{$fechaAyer}";
+        $fechaActual = Carbon::now();
+        $fechaActualFormatted = $fechaActual->format('Y-m-d');
+        
+        $url = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43718/datos/{$fechaActualFormatted}/{$fechaActualFormatted}";
         $token = 'bd753cf2dc6bf3c5e05b703fe31e8c7863f72dee60168eb6b9e18bf9c3ff96df';
         $response = Http::withHeaders([
             'Bmx-Token' => $token
