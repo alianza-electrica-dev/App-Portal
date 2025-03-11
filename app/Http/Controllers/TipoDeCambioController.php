@@ -9,6 +9,18 @@ class TipoDeCambioController extends Controller
     public function obtenerTipoDeCambioActual()
     {
         $fechaActual = Carbon::now();
+        
+        if ($fechaActual->isSaturday()) {
+            $fechaActual->subDay();
+        } elseif ($fechaActual->isSunday()) {
+            $fechaActual->subDays(2);
+        } elseif ($fechaActual->isTuesday()) {
+            $fechaLunes = $fechaActual->copy()->subDay();
+            if (!$this->existeTipoDeCambio($fechaActual)) {
+                $fechaActual = $fechaLunes;
+            }
+        }
+
         $fechaActualFormatted = $fechaActual->format('Y-m-d');
         
         $url = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43718/datos/{$fechaActualFormatted}/{$fechaActualFormatted}";
@@ -19,7 +31,6 @@ class TipoDeCambioController extends Controller
         
         if ($response->successful()) {
             $datos = $response->json();
-
             $tipoDeCambio = $datos['bmx']['series'][0]['datos'][0] ?? null;
 
             if ($tipoDeCambio) {
@@ -27,16 +38,29 @@ class TipoDeCambioController extends Controller
                     'fecha' => $tipoDeCambio['fecha'],
                     'tipo_de_cambio' => $tipoDeCambio['dato']
                 ]);
-            } else {
-                return response()->json([
-                    'mensaje' => 'No se encontraron datos para la fecha solicitada.'
-                ], 404);
             }
-        } else {
-            return response()->json([
-                'mensaje' => 'Error al consultar la API de Banxico.'
-            ], $response->status());
         }
+        
+        return response()->json([
+            'mensaje' => 'No se encontraron datos para la fecha solicitada.'
+        ], 404);
+    }
+
+    private function existeTipoDeCambio($fecha)
+    {
+        $fechaFormatted = $fecha->format('Y-m-d');
+        $url = "https://www.banxico.org.mx/SieAPIRest/service/v1/series/SF43718/datos/{$fechaFormatted}/{$fechaFormatted}";
+        $token = 'bd753cf2dc6bf3c5e05b703fe31e8c7863f72dee60168eb6b9e18bf9c3ff96df';
+        $response = Http::withHeaders([
+            'Bmx-Token' => $token
+        ])->get($url);
+
+        if ($response->successful()) {
+            $datos = $response->json();
+            return !empty($datos['bmx']['series'][0]['datos']);
+        }
+
+        return false;
     }
 }
 ?>
